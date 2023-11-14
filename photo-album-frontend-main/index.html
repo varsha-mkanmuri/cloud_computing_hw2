@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Photo Album</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./assets/css/index.css" rel="stylesheet">
+
+    <!-- api gateway generated sdk -->
+    <script src="./assets/js/sdk/lib/axios/dist/axios.standalone.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/rollups/sha256.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/components/hmac.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/components/enc-base64.js"></script>
+    <script src="./assets/js/sdk/lib/url-template/url-template.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/sigV4Client.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/utils.js"></script>
+
+    <script src="./assets/js/sdk/apigClient.js"></script>
+
+    <script src="./assets/js/aws-sdk.min.js"></script>
+    
+</head>
+
+<body class="bg-light">
+
+    <!-- Jumbotron -->
+    <div class="p-5 text-center bg-light">
+        <h1 class="mb-3">Photo Album Application</h1>
+        <div class="container">
+            <div class="row height d-flex justify-content-center align-items-center">
+                <div class="col-md-10">
+                    <div class="form" method="POST" onsubmit="search()">
+                        <i class="fa fa-search"></i>
+                        <input id="searchKey" type="text" class="form-control form-input"
+                            placeholder="Search photos using keywords">
+                        <span class="left-pan"><i class="fa fa-microphone"></i></span>
+                    </div>
+                </div>
+                <div class="speech_to_text"> 
+                <button id="click_to_record">Record voice</button>
+              </div>
+
+                <div class="col-md-2">
+                    <!-- Button trigger modal -->
+                    <button style="background-color: #c21a1a" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        Upload a Photo
+                    </button>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel">Upload photo</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="cancel()"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-success" role="alert" id="success" style="display: none;"></div>
+                                    <div class="alert alert-danger" role="alert" id="error" style="display: none;"></div>
+                                    <div class="mb-3 row">
+                                        <label for="inputPassword" class="col-sm-2 col-form-label">Custom Labels</label>
+                                        <div class="col-sm-10">
+                                            <input type="text" placeholder="Enter comma separated labels" class="form-control" id="customLabels">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="inputPassword" class="col-sm-2 col-form-label">Photo</label>
+                                        <div class="col-sm-10">
+                                            <input type="file" class="form-control" id="photo" accept="image/png, image/jpeg, image/jpg">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancel()">Cancel</button>
+                                    <button type="button" class="btn btn-primary" onclick="upload()">Submit</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="cardDeck" class="card-deck" style="border-top: 100px">
+                <!-- <div class="card" style="width: 18rem; display:inline-block">
+                    <img class="card-img-top" src="./flower.jpeg" alt="Card image cap">
+                </div> -->
+            </div>
+            <!-- <div onKeyPress="checkSubmit(event)"></div> -->
+        </div>
+
+        <script>
+            var sdk = apigClientFactory.newClient({apiKey:'R12eMf4hHYafy2LSxsQwc5hQSVphouK78Da0k9qS'});
+        </script>
+
+        <script src="./assets/js/index.js"></script>
+        <script src="./assets/js/bootstrap.bundle.min.js"></script>
+        <script src="./assets/js/bootstrap.min.js"></script>
+       
+</body>
+
+</html>

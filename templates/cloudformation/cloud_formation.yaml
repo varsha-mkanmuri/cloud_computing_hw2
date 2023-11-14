@@ -1,0 +1,403 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This is a photo album app using S3, Lambda, and API Gateway
+  String
+
+Parameters:
+  UploadBucketName:
+    Type: String
+    Default: upload-photos-b2-0001
+
+  SearchPhotosLambdaFunctionName:
+    Type: String
+    Default: search-photos-0001
+
+  IndexPhotosLambdaFunctionName:
+    Type: String
+    Default: index-photos-0001
+
+  PhotoAlbumAPIStageName:
+    Type: String
+    Default: production
+
+  LexBotID:
+    Type: String
+    Default: ANOYBOEGUT
+
+  LexBotAliasID:
+    Type: String
+    Default: OH0S4RECIE
+
+Resources:
+  SearchPhotosLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - 'sts:AssumeRole'
+      Policies:
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Sid: IamListAccess
+              Effect: Allow
+              Action:
+                - 'iam:ListRoles'
+                - 'iam:ListUsers'
+              Resource: '*'
+          PolicyName: Policy1
+        - PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - lex:CreateUploadUrl
+              - lex:ListBuiltInSlotTypes
+              - lex:ListBots
+              - lex:CreateTestSet
+              - lex:ListTestSets
+              - lex:ListBuiltInIntents
+              - lex:ListImports
+              - lex:ListTestExecutions
+              - lex:ListExports
+              Resource: "*"
+            - Effect: Allow
+              Action: lex:*
+              Resource:
+              - !Join [ "", [ "arn:aws:lex:us-east-1:871847121306:bot-alias/", !Ref LexBotID , "/", !Ref LexBotAliasID ] ]
+              - !Join [ "", [ "arn:aws:lex:us-east-1:871847121306:bot-alias/", !Ref LexBotID] ]
+              - arn:aws:lex:us-east-1:871847121306:test-set/*
+          PolicyName: Policy2
+      Description: IAM Role for search-photos lambda
+      ManagedPolicyArns: 
+      - arn:aws:iam::aws:policy/AmazonOpenSearchServiceReadOnlyAccess
+      - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
+      - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+      - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
+      RoleName: LambdaExecutionRole1
+
+  IndexPhotosLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - 'sts:AssumeRole'
+      Description: IAM Role for index-photos lambda
+      ManagedPolicyArns: 
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
+      - arn:aws:iam::aws:policy/AmazonRekognitionCustomLabelsFullAccess
+      - arn:aws:iam::aws:policy/AmazonRekognitionReadOnlyAccess
+      RoleName: LambdaExecutionRole2
+
+  CorsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - 'sts:AssumeRole'
+      Description: IAM Role for index-photos lambda
+      ManagedPolicyArns: 
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: CorsExecutionRole
+
+  SearchPhotosLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref SearchPhotosLambdaFunctionName
+      Runtime: python3.11
+      Role: !GetAtt SearchPhotosLambdaExecutionRole.Arn
+      Handler: lambda_function.lambda_handler
+      Code:
+        S3Bucket: lambda-code-0001
+        S3Key: search-photos.zip
+      Description: index photos lambda function
+      Timeout: 60
+      TracingConfig:
+        Mode: Active
+
+  IndexPhotosLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: lambda-code-0001
+        S3Key: index-photos.zip
+      Description: index photos lambda function
+      Handler: lambda_function.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - IndexPhotosLambdaExecutionRole
+        - Arn
+      Timeout: 60
+      Runtime: python3.11
+      FunctionName: !Ref IndexPhotosLambdaFunctionName
+
+  CorsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: lambda-code-0001
+        S3Key: cors.zip
+      Description: cors proxy
+      Handler: lambda_function.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - CorsLambdaExecutionRole
+        - Arn
+      Timeout: 60
+      Runtime: python3.11
+      FunctionName: cors-0001
+
+  uploadS3bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref UploadBucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - IndexPhotosLambdaFunction
+            - Arn
+          Event: s3:ObjectCreated:Put
+    DependsOn:
+    - LambdaInvokePermission
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      SourceAccount:
+        Ref: AWS::AccountId
+      FunctionName:
+        Ref: IndexPhotosLambdaFunction
+      Principal: s3.amazonaws.com
+
+  PhotoAlbumAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: photoalbumapi-0001
+
+  SearchPhotosResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PhotoAlbumAPI.RootResourceId
+      PathPart: search
+      RestApiId: !Ref PhotoAlbumAPI
+
+  BucketResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PhotoAlbumAPI.RootResourceId
+      PathPart: "{bucket}"
+      RestApiId: !Ref PhotoAlbumAPI
+
+  IndexPhotosResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref BucketResource
+      PathPart: "{filename}"
+      RestApiId: !Ref PhotoAlbumAPI
+
+  SearchPhotosMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoAlbumAPI
+      ResourceId: !Ref SearchPhotosResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.querystring.q: true
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'*'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - StatusCode: 200
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        ResponseModels:
+          application/json: "Empty"
+
+  SearchOptionsPhotosMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoAlbumAPI
+      ResourceId: !Ref SearchPhotosResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'*'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+      - StatusCode: 200
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        ResponseModels:
+          application/json: "Empty"
+
+  IndexPhotosMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoAlbumAPI
+      ResourceId: !Ref IndexPhotosResource
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.bucket: true
+        method.request.path.filename: true
+        method.request.header.Content-Type: true
+        method.request.header.x-amz-meta-customLabels: false
+      Integration:
+        Credentials: !GetAtt ApiGatewayS3ProxyRole.Arn
+        Type: AWS
+        ContentHandling: CONVERT_TO_BINARY
+        IntegrationHttpMethod: PUT
+        RequestParameters:
+          integration.request.path.bucket: method.request.path.bucket
+          integration.request.path.filename: method.request.path.filename
+          integration.request.header.Content-Type: method.request.header.Content-Type
+          integration.request.header.x-amz-meta-customLabels: method.request.header.x-amz-meta-customLabels
+        Uri: !Sub >-
+          arn:aws:apigateway:us-east-1:s3:path/{bucket}/{filename}
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'*'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+      - StatusCode: 200
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        ResponseModels:
+          application/json: "Empty"
+
+  IndexOptionsPhotosMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoAlbumAPI
+      ResourceId: !Ref IndexPhotosResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'*'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - StatusCode: 200
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        ResponseModels:
+          application/json: "Empty"
+
+  ApiGatewayS3ProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: s3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${UploadBucketName}'
+                  - !Sub 'arn:aws:s3:::${UploadBucketName}/*'
+
+  OpenSearchServiceDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: newphoto
+      EngineVersion: OpenSearch_2.9
+      ClusterConfig:
+        InstanceCount: 1
+        InstanceType: t3.small.search
+        DedicatedMasterEnabled: false
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp3
+        Iops: 3000
+        Throughput: 125   
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt IndexPhotosLambdaFunction.Arn
+          Action: 'es:*'
+          Resource: arn:aws:es:us-east-1:871847121306:domain/newphoto/*
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt SearchPhotosLambdaFunction.Arn
+          Action: 'es:*'
+          Resource: arn:aws:es:us-east-1:871847121306:domain/newphoto/*
+
+  APIDeployment:
+    DependsOn:
+      - SearchPhotosMethod
+      - IndexPhotosMethod
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref PhotoAlbumAPI
+      Description: Deployment to production
+      StageName: !Ref PhotoAlbumAPIStageName

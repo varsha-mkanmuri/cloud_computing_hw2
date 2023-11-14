@@ -1,0 +1,25 @@
+#cardDeck {
+    padding: 1rem;
+}
+
+*,*:after,*:before{
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+.speech_to_text{
+  width: 100px;
+  text-align: center;
+}
+
+button{
+  padding: 12px 15px;
+  background: #0ea4da;
+  border: 0;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 2px;
+}
