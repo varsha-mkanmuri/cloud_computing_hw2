@@ -364,6 +364,9 @@ Resources:
 
   OpenSearchServiceDomain:
     Type: AWS::OpenSearchService::Domain
+    DependsOn:
+    - SearchPhotosLambdaExecutionRole
+    - IndexPhotosLambdaExecutionRole
     Properties:
       DomainName: newphoto
       EngineVersion: OpenSearch_2.9
@@ -380,15 +383,12 @@ Resources:
         Throughput: 125   
       AccessPolicies:
         Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
+       Statement:
+          Effect: Allow
           Principal:
-            AWS: !GetAtt IndexPhotosLambdaFunction.Arn
-          Action: 'es:*'
-          Resource: arn:aws:es:us-east-1:871847121306:domain/newphoto/*
-        - Effect: Allow
-          Principal:
-            AWS: !GetAtt SearchPhotosLambdaFunction.Arn
+            AWS: 
+            - !GetAtt SearchPhotosLambdaExecutionRole.Arn
+            - !GetAtt IndexPhotosLambdaExecutionRole.Arn
           Action: 'es:*'
           Resource: arn:aws:es:us-east-1:871847121306:domain/newphoto/*
 
