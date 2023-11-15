@@ -384,13 +384,14 @@ Resources:
       AccessPolicies:
         Version: '2012-10-17'
        Statement:
-          Effect: Allow
+        - Effect: Allow
           Principal:
-            AWS: 
-            - !GetAtt SearchPhotosLambdaExecutionRole.Arn
-            - !GetAtt IndexPhotosLambdaExecutionRole.Arn
+            AWS: !GetAtt SearchPhotosLambdaExecutionRole.Arn
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt IndexPhotosLambdaExecutionRole.Arn
           Action: 'es:*'
-          Resource: arn:aws:es:us-east-1:871847121306:domain/newphoto/*
+          Resource: 'arn:aws:es:us-east-1:871847121306:domain/newphoto/*'
 
   APIDeployment:
     DependsOn:
