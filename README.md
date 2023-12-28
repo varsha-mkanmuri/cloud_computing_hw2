@@ -8,3 +8,5 @@ Website link - http://photoalbum.com.s3-website-us-east-1.amazonaws.com/
    a. index-photos.py - lambda to index uplaoded photos<br>
    b. search-photos.py - lambda to search photos using user input<br>
 3. /templates -  Contains temples fopr codepipeline, cloudformation and API Gateway generated YAML file.
+
+Tech stack includes various cloud services like AWS Rekognition, Lex, and OpenSearch, enabling natural language and voice powered searches.
