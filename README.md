@@ -1,5 +1,5 @@
 #Photo Album App #
-Assignment by COMS 6998 Cloud Computing & Big Data class at Columbia University<br>
+This project is part of COMS 6998 Cloud Computing & Big Data course at Columbia University<br>
 Website link - http://photoalbum.com.s3-website-us-east-1.amazonaws.com/ 
 
 ## Files/Folders Included:
