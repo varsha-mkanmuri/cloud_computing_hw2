@@ -18,7 +18,6 @@ client = boto3.client('lexv2-runtime')
 def lambda_handler(event, context):
     print("Event codepipeline 2")
     print(event)
-    # print(event["queryStringParameters"])
     input = event['q']
     # input = event['messages'][0]['unstructured']['text']
     #input = "show me zero and octopi"
@@ -31,8 +30,7 @@ def lambda_handler(event, context):
         text=input)
 
     keywords = []
-    
-    
+
     print('event', event)
 
     interpretations = response['interpretations']
